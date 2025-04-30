@@ -387,126 +387,264 @@ def mark_task_as_complete_task():
     else:  # No tasks case
         return colored("\nThe tasks list is empty!", color='red', attrs=['bold'])
 
+
 def edit_task_in_tasks_list():
     """
-    Allow the user to edit the content of an existing task.
+    Allows user to modify the text of an existing task in the task list.
+    
+    Workflow:
+    1. Loads current tasks from file
+    2. Displays all tasks with numbering
+    3. Prompts user to select a task to edit
+    4. Validates the selection
+    5. Takes new task text input
+    6. Updates and saves the task list
+    
+    Returns:
+        str: Colored status message indicating:
+             - Success (green) when task is updated
+             - Error (red) for invalid cases:
+               * Empty task list
+               * Non-numeric input
+               * Out of range numbers
+               * Zero/negative numbers
+    
+    Raises:
+        ZeroUserInput: If user enters 0
+        NegetiveInputNumber: If user enters negative number
+        TasksInputOutOfRangeError: If number exceeds task count
+    
+    Example:
+        >>> edit_task_in_tasks_list()
+        +1: Buy groceries
+        +2: Walk the dog
+        [User selects 1, enters "Buy organic groceries"]
+        "Task updated successfully." [green]
     """
+    # Load current tasks from file and get count
     tasks = load_tasks_list(TASKS_LIST)
     length = len(tasks)
+
+    # Only proceed if tasks exist
     if tasks:
+        # Display edit section header
         cprint('\n======== Edit a task ======== \n', color='white', attrs=['bold'])
 
+        # Display all tasks with + prefix for selection
         for index, task in enumerate(tasks, start=1):
-            cprint(text=f'+{index}: {task}', color='cyan', attrs=['bold'])
+            cprint(text=f'+{index}: {task}', color='cyan',attrs=['bold'])
 
-        edit_task_input = input(colored('\nSelect the + number to edit: ', color='white', attrs=['bold'])).strip()
+        # Get user input for task to edit
+        edit_task_input = input(colored(
+            '\nSelect the + number to edit: ', color='white', attrs=['bold'])).strip()  # Remove whitespace
 
         try:
+            # Convert and validate input
             task_index = int(edit_task_input)
+            
+            # Custom validation checks
             if task_index == 0:
                 raise ZeroUserInput(message='There is no Zero number in your list.')
-
             elif task_index < 0:
                 raise NegetiveInputNumber(message='Please enter positive number.')
-
+            
             elif task_index not in range(1, length+1):
                 raise TasksInputOutOfRangeError(
                     message="\nError: The number is not in the list. The last number in the list is: ",
                     len_tasks_list=length,
-                    ) 
+                )
 
+            # Get new task text from user
             new_task_input = input('\nEdit the task: ')
+            
+            # Update the selected task (adjusting for 0-based index)
             tasks[task_index-1] = new_task_input
 
+            # Save the updated task list
             save_tasks_list(TASKS_LIST, tasks)
             
-            return colored("\nTask updated successfully.", color='green', attrs=['bold'])
+            return colored("\nTask updated successfully.", color='green',attrs=['bold'])
 
-        except ValueError:
+        # Handle various error cases
+        except ValueError:  # Non-integer input
             return colored("\nError: Please enter a positive integer number.", color='red', attrs=['bold'])
-
-        except TasksInputOutOfRangeError as e:
+        
+        except TasksInputOutOfRangeError as e:  # Invalid task number
             text = str(e.message) + str(e.len_tasks_list)
             return colored(f'{text}', color='red', attrs=['bold'])
-
-        except NegetiveInputNumber as e:
+        
+        except NegetiveInputNumber as e:  # Negative number
             return colored(f'\n{e.message}', color='red', attrs=['bold'])
         
-        except ZeroUserInput as e:
+        except ZeroUserInput as e:  # Zero entered
             return colored(f'\n{e.message}', color='red', attrs=['bold'])
 
-    else:
-        return colored(f"\nThe tasks list is empty!", color='red', attrs=['bold'])
-    
+    else:  # No tasks case
+        return colored("\nThe tasks list is empty!", color='red', attrs=['bold'])
+
 
 def search_task_in_tasks_list():
     """
-    Search for tasks by keyword in both active and completed lists.
+    Searches for tasks containing a keyword in both active and completed task lists.
+    
+    Features:
+    - Searches case-insensitively (converts both tasks and keyword to lowercase)
+    - Distinguishes between active and completed tasks in results
+    - Provides immediate feedback when no tasks exist
+    - Returns appropriate status messages
+    
+    Returns:
+        str: Colored status message indicating:
+             - Success (green) when search completes
+             - Warning (red) if no tasks exist
+             - Warning (red) if no matches found
+    
+    Output Format:
+        For each match found, displays:
+        - "Active task [index]: [task]" (green) or
+        - "Completed task [index]: [task]" (green)
+    
+    Example:
+        >>> search_task_in_tasks_list()
+        [User enters "groceries"]
+        Active task 1: Buy groceries
+        Completed task 3: Finish groceries shopping
+        "Search completed." [green]
     """
+    # Load both active and completed tasks
     tasks = load_tasks_list(TASKS_LIST)
     complete_tasks = load_tasks_list(COMPLETED_TASKS_LIST)
 
+    # Display search header
     cprint('\n======== Search tasks ======== \n', color='white', attrs=['bold'])
 
-    search_user_input = input(colored('Enter your keyword: ', 'white', attrs=['bold'])).strip()
+    # Get search keyword from user (strip whitespace)
+    search_user_input = input(colored('Enter your keyword: ', 'white', attrs=['bold'])).strip().lower()  # Convert to lowercase for case-insensitive search
 
-    found = False  # Flag to track if any matches found
+    # Flag to track if any matches are found
+    found = False  
 
+    # Check if both lists are empty
     if not tasks and not complete_tasks:
         return colored("\nNo tasks exist yet.", 'red', attrs=['bold'])
 
+    # Search through active tasks
     for index, task in enumerate(tasks, start=1):    
-        if search_user_input in task.lower():
+        if search_user_input in task.lower():  # Case-insensitive comparison
             found = True
+            # Display active task match with green highlight
             cprint(text=f'\nActive task {index}: {task}', color='green', attrs=['bold'])
     
+    # Search through completed tasks
     for index, complete_task in enumerate(complete_tasks, start=1):
-        if search_user_input in complete_task.lower():
+        if search_user_input in complete_task.lower():  # Case-insensitive comparison
             found = True
+            # Display completed task match with green highlight
             cprint(text=f'\nCompleted task {index}: {complete_task}', color='green', attrs=['bold'])
 
+    # Handle no matches found
     if not found:
         return colored("\nNo matching tasks found.", color='red', attrs=['bold'])
 
+    # Return success message if search completed (regardless of matches found)
     return colored("\nSearch completed.", color='green', attrs=['bold'])
 
 
 def clear_all_tasks_in_tasks_list():
     """
-    Clear all tasks in the active list after confirmation from the user.
+    Clears all tasks from the active task list after user confirmation.
+    
+    Features:
+    - Requires explicit user confirmation before deletion
+    - Handles both 'y' and 'yes' as affirmative responses
+    - Provides appropriate feedback for all outcomes
+    - Checks for empty list case
+    
+    Returns:
+        str: Colored status message indicating:
+             - Success (green) when tasks are cleared
+             - Cancellation (red) when user declines
+             - Warning (red) when list is already empty
+    
+    Side Effects:
+        - Potentially modifies tasks.txt file
+        - Prints confirmation prompt to stdout
+    
+    Example:
+        >>> clear_all_tasks_in_tasks_list()
+        [User enters 'y']
+        "All tasks cleared." [green]
     """
+    # Load current tasks from file
     tasks = load_tasks_list(TASKS_LIST)
 
+    # Display clear tasks header
     cprint("\n======== Clear all tasks ========\n", 'white', attrs=['bold'])
 
+    # Only proceed if tasks exist
     if tasks:
-        user_input = input(colored("Are you sure (y/n)? ", color='white', attrs=['bold'])).strip()
-        if user_input.lower() in ['y', 'yes']:
+        # Get confirmation from user (strip whitespace)
+        user_input = input(colored("Are you sure (y/n)? ", color='white', attrs=['bold'])).strip().lower()  # Normalize to lowercase
+
+        # Check for affirmative response ('y' or 'yes')
+        if user_input in ['y', 'yes']:
+            # Clear the task list in memory
             tasks.clear()
+            # Save the empty list to file
             save_tasks_list(TASKS_LIST, tasks)
-            return colored("\nAll tasks cleared.", color='green', attrs=['bold'])
+            return colored("\nAll tasks cleared.", color='green',attrs=['bold'])
         
+        # Return cancellation message for non-affirmative responses
         return colored("\nOperation cancelled.", color='red', attrs=['bold'])
 
-    else:
-        return colored(f"\nThe tasks list is empty!", color='red', attrs=['bold'])
+    else:  # No tasks case
+        return colored("\nThe tasks list is empty!", color='red', attrs=['bold'])
 
 
 def display_complete_task_list():
     """
-    Display all completed tasks.
+    Displays all tasks from the completed tasks list with numbering.
+    
+    Features:
+    - Loads and displays completed tasks in a numbered list
+    - Uses distinct cyan color for completed tasks
+    - Provides appropriate feedback when no completed tasks exist
+    - Returns colored status messages
+    
+    Returns:
+        str: Colored status message indicating:
+             - Success (green) when tasks are displayed
+             - Information (red) when no completed tasks exist
+    
+    Output Format:
+        Each completed task is displayed as:
+        [number]. [task text]
+        
+    Example:
+        >>> display_complete_task_list()
+        1. Finished project
+        2. Paid bills
+        "All completed tasks displayed." [green]
     """
+    # Load completed tasks from persistent storage
     complete_tasks = load_tasks_list(COMPLETED_TASKS_LIST)
+    
+    # Display section header for completed tasks
     cprint('\n======== List completed tasks ======== \n', 'white', attrs=['bold'])
 
+    # Check if there are completed tasks to display
     if complete_tasks:
+        # Enumerate and display each task with numbering
         for num, task in enumerate(complete_tasks, start=1):
-            cprint(f'{num}. {task}\n',  color='cyan', attrs=['bold'])
+            # Format: "1. Task text" with cyan color for visual distinction
+            cprint(f'{num}. {task}\n',  color='cyan',  attrs=['bold'])  
 
-        return colored("\nAll completed tasks displayed.", color='green', attrs=['bold'])
+        # Return success confirmation message
+        return colored("\nAll completed tasks displayed.", color='green',attrs=['bold'])
 
     else:
-        return colored("No completed tasks yet.", 'red', attrs=['bold'])
+        # Return message when no completed tasks exist
+        return colored("No completed tasks yet.", 'red',attrs=['bold'])
 
 
 # Main execution block
