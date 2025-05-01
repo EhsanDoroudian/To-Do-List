@@ -1,4 +1,6 @@
-import os  # For file path operations
+
+import sys
+import os
 from termcolor import cprint, colored  # For colored terminal output
 
 # Import custom exceptions for specific error cases
@@ -9,9 +11,16 @@ from exceptions import (
     NegetiveInputNumber        # When user enters negative number
 )
 
-# Constants for file paths - using uppercase naming convention
-TASKS_LIST = "tasks.txt"  # File to store active/current tasks
-COMPLETED_TASKS_LIST = "completed_tasks.txt"  # File to store completed tasks
+
+
+def get_file_path(filename):
+    if getattr(sys, 'frozen', False):  # Running as executable
+        return os.path.join(os.path.dirname(sys.executable), filename)
+    else:  # Running as script
+        return filename
+
+TASKS_LIST = "tasks.txt"
+COMPLETED_TASKS_LIST = "completed_tasks.txt"
 
 
 def load_tasks_list(filename):

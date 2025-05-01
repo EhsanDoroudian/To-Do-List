@@ -156,8 +156,8 @@ class ToDoList:
                     print(self._add_task_to_tasks_file())
                 case 2:
                     print(self._delete_task_from_tasks_list())
-                # case 3:
-                #     print(display_tasks_list())
+                case 3:
+                    print(display_tasks_list())
                 # case 4:
                 #     print(mark_task_as_complete_task())
                 # case 5:
