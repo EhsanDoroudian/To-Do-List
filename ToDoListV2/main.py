@@ -1,8 +1,6 @@
-
 import sys
 import os
 from termcolor import cprint, colored  # For colored terminal output
-
 # Import custom exceptions for specific error cases
 from exceptions import (
     UserOptionInputError,        # For invalid menu selections
@@ -13,14 +11,15 @@ from exceptions import (
 
 
 
-def get_file_path(filename):
-    if getattr(sys, 'frozen', False):  # Running as executable
-        return os.path.join(os.path.dirname(sys.executable), filename)
-    else:  # Running as script
-        return filename
+def resource_path(relative_path):
+    """
+    Always resolves to directory where the executable (or script) is running from.
+    """
+    return os.path.join(os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else __file__), relative_path)
 
-TASKS_LIST = "tasks.txt"
-COMPLETED_TASKS_LIST = "completed_tasks.txt"
+
+TASKS_LIST = resource_path("tasks.txt")
+COMPLETED_TASKS_LIST = resource_path("completed_tasks.txt")
 
 
 def load_tasks_list(filename):
