@@ -22,7 +22,7 @@ class ToDoList:
         self._tasks = []
         self._complete_list = []
         self._create_date = datetime.datetime.now()
-        self._number_of_tasks = 0
+        self._length = 0
 
     def _load_tasks_file(self, filename):
         tasks_list = []
@@ -109,6 +109,150 @@ class ToDoList:
         else:  # No tasks case
             return self.red + "\nThe tasks list is empty!"
 
+    def _display_tasks_list(self):
+        # Load current tasks from file using helper function
+        tasks = self._load_tasks_file(self._TASKS_FILE)
+
+        # Check if tasks exist
+        if tasks:
+            # Display section header with consistent formatting
+            print(self.white + '\n======== List tasks ======== \n')
+            
+            # Enumerate and display each task with numbering
+            for index, task in enumerate(tasks, start=1):
+                # Format: "1. Task description" with newline
+                print(self.white + f'{index}. {task}\n')
+            
+            # Return success confirmation message
+            return self.green + "All tasks displayed.", 
+
+        else:
+            # Return empty list warning message
+            return self.red + "\nThe tasks list is empty!", 
+
+    def _mark_task_as_complete_task(self):
+        # Load current tasks and completed tasks
+        tasks = self._load_tasks_file(self._TASKS_FILE)
+        length = len(tasks)  # Get count of active tasks
+        complete_tasks = self._load_tasks_file(self._COMPLETE_TASKS_FILE)
+
+        # Only proceed if there are tasks to complete
+        if tasks:
+            # Display completion section header
+            print(self.white + '\n======== Mark task as completed ======== \n')
+
+            # Show all tasks with + prefix for selection
+            for index, task in enumerate(tasks, start=1):
+                print(self.cyan + f'+{index}: {task}')
+
+            # Get user input for task to complete
+            complete_task_input = input(self.white + '\nSelect the + number to mark as completed: ').strip()  # Remove whitespace
+
+            try:
+                # Convert and validate input
+                task_index = int(complete_task_input)
+                
+                # Custom validation checks
+                if task_index == 0:
+                    raise ZeroUserInput(message='There is no Zero number in your list.')
+                
+                elif task_index < 0:
+                    raise NegetiveInputNumber(message='Please enter positive number.')
+                
+                elif task_index not in range(1, length+1):
+                    raise TasksInputOutOfRangeError(
+                        message="\nError: The number is not in the list. The last number in the list is: ",
+                        len_tasks_list=length,
+                    ) 
+                
+                # Move task from active to completed
+                complete_tasks.append(tasks[task_index-1])  # Add to completed
+                del tasks[task_index-1]  # Remove from active
+
+                # Persist changes to both files
+                self._save_tasks_file(self._TASKS_FILE, tasks)
+                self._save_tasks_file(self._COMPLETE_TASKS_FILE, complete_tasks)
+
+                return self.green + "\nTask marked as completed."
+
+            # Handle various error cases
+            except ValueError:  # Non-integer input
+                return self.red + "\nError: Please enter a number."
+
+            except TasksInputOutOfRangeError as e:  # Invalid task number
+                text = str(e.message) + str(e.len_tasks_list)
+                return self.red + f'{text}'
+
+            except NegetiveInputNumber as e:  # Negative number
+                return self.red + f'\n{e.message}'
+
+            except ZeroUserInput as e:  # Zero entered
+                return self.red + f'\n{e.message}'
+
+        else:  # No tasks case
+            return self.red + "\nThe tasks list is empty!"
+    
+    def _edit_task_in_tasks_list(self):
+        # Load current tasks from file and get count
+        tasks = self._load_tasks_file(self._TASKS_FILE)
+        self._length = len(tasks)
+
+        # Only proceed if tasks exist
+        if tasks:
+            # Display edit section header
+            print(self.white + '\n======== Edit a task ======== \n')
+
+            # Display all tasks with + prefix for selection
+            for index, task in enumerate(tasks, start=1):
+                print(self.cyan + f'+{index}: {task}')
+
+            # Get user input for task to edit
+            edit_task_input = input(self.white + '\nSelect the + number to edit: ').strip()  # Remove whitespace
+
+            try:
+                # Convert and validate input
+                task_index = int(edit_task_input)
+                
+                # Custom validation checks
+                if task_index == 0:
+                    raise ZeroUserInput(message='There is no Zero number in your list.')
+                elif task_index < 0:
+                    raise NegetiveInputNumber(message='Please enter positive number.')
+                
+                elif task_index not in range(1, self._length+1):
+                    raise TasksInputOutOfRangeError(
+                        message="\nError: The number is not in the list. The last number in the list is: ",
+                        len_tasks_list=self._length,
+                    )
+
+                # Get new task text from user
+                new_task_input = input('\nEdit the task: ')
+                
+                # Update the selected task (adjusting for 0-based index)
+                tasks[task_index-1] = new_task_input
+
+                # Save the updated task list
+                self._save_tasks_file(self._TASKS_FILE, tasks)
+                
+                return self.green + "\nTask updated successfully."
+
+            # Handle various error cases
+            except ValueError:  # Non-integer input
+                return self.red + "\nError: Please enter a positive integer number."
+            
+            except TasksInputOutOfRangeError as e:  # Invalid task number
+                text = str(e.message) + str(e.len_tasks_list)
+                return self.red + f'{text}'
+            
+            except NegetiveInputNumber as e:  # Negative number
+                return self.red + f'\n{e.message}'
+            
+            except ZeroUserInput as e:  # Zero entered
+                return self.red + f'\n{e.message}'
+
+        else:  # No tasks case
+            return self.red + "\nThe tasks list is empty!"
+        
     def start(self):
         for file in [self._TASKS_FILE, self._COMPLETE_TASKS_FILE]:
             if not os.path.exists(file):
@@ -157,11 +301,11 @@ class ToDoList:
                 case 2:
                     print(self._delete_task_from_tasks_list())
                 case 3:
-                    print(display_tasks_list())
-                # case 4:
-                #     print(mark_task_as_complete_task())
-                # case 5:
-                #     print(edit_task_in_tasks_list())
+                    print(self._display_tasks_list())
+                case 4:
+                    print(self._mark_task_as_complete_task())
+                case 5:
+                    print(self._edit_task_in_tasks_list())
                 # case 6:
                 #     print(search_task_in_tasks_list())
                 # case 7:
