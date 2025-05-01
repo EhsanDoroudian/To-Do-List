@@ -1,45 +1,20 @@
 import os
 import datetime
 import colorama
-from colorama import Fore, Back, Style
+from colorama import Fore, Style
 
 from exceptions import UserOptionInputError, TasksInputOutOfRangeError, NegetiveInputNumber, ZeroUserInput
-
-colorama.init()
-print(Fore.RED + "This text is red!")
-print(Fore.GREEN + "This text is green!")
-
-
-print(Fore.RED + 'This text is red')
-print(Back.GREEN + 'This text has a green background')
-print(Style.BRIGHT + 'This text is bright')
-print(Style.RESET_ALL + 'Back to normal text')
-
-
-# Print text with different colors and styles
-print(Style.BRIGHT + Fore.RED + Back.GREEN + 'Bright red text on green background')
-
-
-print(Style.BRIGHT + "This text is bright/bold")
-print(Style.DIM + "This text is dim")
-print(Style.NORMAL + "This text is normal")
-
-
-print(Fore.RED + 'Red text')
-# This will still be red
-print('Normal text')  
-# Reset styles
-print(Style.RESET_ALL)  
-print('Back to normal')
 
 
 class ToDoList:
 
+    colorama.init()
     bold = Style.BRIGHT
     white = Fore.WHITE + bold
     red = Fore.RED + bold
     green = Fore.GREEN + bold
     magenta = Fore.MAGENTA + bold
+    cyan = Fore.CYAN + bold
 
     def __init__(self, tasks_file="tasks.txt", completed_tasks_file="complete_tasks.txt"):
         self._TASKS_FILE = tasks_file
@@ -79,6 +54,60 @@ class ToDoList:
         self._save_tasks_file(self._TASKS_FILE, tasks)
 
         return self.green + "\nYour task has been added successfully."
+    
+    def _delete_task_from_tasks_list(self):
+        # Display delete task section header
+        print(self.white + '\n ======== Delete a task ======== \n')
+        
+        # Load current tasks and get count
+        tasks = self._load_tasks_file(self._TASKS_FILE)
+        length = len(tasks)
+
+        # Only proceed if tasks exist
+        if tasks:
+            # Display all tasks with numbered prefixes
+            for index, task in enumerate(tasks, start=1):
+                print(self.cyan + f'*{index}: {task}')
+
+            try:
+                # Get and validate user selection
+                delete_task_input = int(input(self.white + '\nSelect the * number to delete the task: ').strip())
+                
+                # Custom exception cases
+                if delete_task_input == 0:
+                    raise ZeroUserInput(message='There is no Zero number in your list.')
+
+                elif delete_task_input < 0:
+                    raise NegetiveInputNumber(message='Please enter positive number.')
+
+                elif delete_task_input not in range(1, length+1):
+                    raise TasksInputOutOfRangeError(
+                        message='\nError: The number is not in the list. The last number in the list is: ',
+                        len_tasks_list=length
+                    )
+                
+            # Handle various error cases
+            except ValueError:  # Non-integer input
+                return self.red + '\nInvalid input. Please enter a number.'
+
+            except TasksInputOutOfRangeError as e:  # Number too high
+                text = str(e.message) + str(e.len_tasks_list)
+                return self.red + f'\n{text}'
+
+            except NegetiveInputNumber as e:  # Negative number
+                return self.red + f'\n{e.message}'
+
+            except ZeroUserInput as e:  # Zero entered
+                return self.red + f'\n{e.message}'
+
+            # If validation passed, delete the task
+            del tasks[delete_task_input-1]  # Adjust for 0-based index
+            self._save_tasks_file(self._TASKS_FILE, tasks)  # Persist changes
+
+            return self.green + f"\nTask number {delete_task_input} has been deleted"
+        
+        else:  # No tasks case
+            return self.red + "\nThe tasks list is empty!"
 
     def start(self):
         for file in [self._TASKS_FILE, self._COMPLETE_TASKS_FILE]:
@@ -125,8 +154,8 @@ class ToDoList:
             match user_option_input:
                 case 1:
                     print(self._add_task_to_tasks_file())
-                # case 2:
-                #     print(delete_task_from_tasks_list())
+                case 2:
+                    print(self._delete_task_from_tasks_list())
                 # case 3:
                 #     print(display_tasks_list())
                 # case 4:
