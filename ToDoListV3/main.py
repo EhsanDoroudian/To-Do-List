@@ -252,7 +252,93 @@ class ToDoList:
 
         else:  # No tasks case
             return self.red + "\nThe tasks list is empty!"
+         
+    def _search_task_in_tasks_list(self):
+        # Load both active and completed tasks
+        tasks = self._load_tasks_file(self._TASKS_FILE)
+        complete_tasks = self._load_tasks_file(self._COMPLETE_TASKS_FILE)
+
+        # Display search header
+        print(self.white + '\n======== Search tasks ======== \n')
+
+        # Get search keyword from user (strip whitespace)
+        search_user_input = input(self.white + 'Enter your keyword: ').strip().lower()  # Convert to lowercase for case-insensitive search
+
+        # Flag to track if any matches are found
+        found = False  
+
+        # Check if both lists are empty
+        if not tasks and not complete_tasks:
+            return self.red + "\nNo tasks exist yet."
+
+        # Search through active tasks
+        for index, task in enumerate(tasks, start=1):    
+            if search_user_input in task.lower():  # Case-insensitive comparison
+                found = True
+                # Display active task match with green highlight
+                print(self.green + f'\nActive task {index}: {task}')
         
+        # Search through completed tasks
+        for index, complete_task in enumerate(complete_tasks, start=1):
+            if search_user_input in complete_task.lower():  # Case-insensitive comparison
+                found = True
+                # Display completed task match with green highlight
+                print(self.green + f'\nCompleted task {index}: {complete_task}')
+
+        # Handle no matches found
+        if not found:
+            return self.red + "\nNo matching tasks found."
+
+        # Return success message if search completed (regardless of matches found)
+        return self.green + "\nSearch completed."
+    
+    def _clear_all_tasks_in_tasks_list(self):
+        # Load current tasks from file
+        tasks = self._load_tasks_file(self._TASKS_FILE)
+
+        # Display clear tasks header
+        print(self.white + "\n======== Clear all tasks ========\n")
+
+        # Only proceed if tasks exist
+        if tasks:
+            # Get confirmation from user (strip whitespace)
+            user_input = input(self.white + "Are you sure (y/n)? ").strip().lower()  # Normalize to lowercase
+
+            # Check for affirmative response ('y' or 'yes')
+            if user_input in ['y', 'yes']:
+                # Clear the task list in memory
+                tasks.clear()
+                # Save the empty list to file
+                self._save_tasks_file(self._TASKS_FILE, tasks)
+                return self.green + "\nAll tasks cleared."
+            
+            # Return cancellation message for non-affirmative responses
+            return self.red + "\nOperation cancelled."
+
+        else:  # No tasks case
+            return self.red + "\nThe tasks list is empty!"
+    
+    def _display_complete_task_list(self):
+        # Load completed tasks from persistent storage
+        complete_tasks = self._load_tasks_file(self._COMPLETE_TASKS_FILE)
+        
+        # Display section header for completed tasks
+        print(self.white + '\n======== List completed tasks ======== \n')
+
+        # Check if there are completed tasks to display
+        if complete_tasks:
+            # Enumerate and display each task with numbering
+            for num, task in enumerate(complete_tasks, start=1):
+                # Format: "1. Task text" with cyan color for visual distinction
+                print(self.cyan + f'{num}. {task}\n')  
+
+            # Return success confirmation message
+            return self.green + "\nAll completed tasks displayed."
+
+        else:
+            # Return message when no completed tasks exist
+            return self.red + "No completed tasks yet."
+
     def start(self):
         for file in [self._TASKS_FILE, self._COMPLETE_TASKS_FILE]:
             if not os.path.exists(file):
@@ -306,15 +392,15 @@ class ToDoList:
                     print(self._mark_task_as_complete_task())
                 case 5:
                     print(self._edit_task_in_tasks_list())
-                # case 6:
-                #     print(search_task_in_tasks_list())
-                # case 7:
-                #     print(clear_all_tasks_in_tasks_list())
-                # case 8:
-                #     print(display_complete_task_list())
-                # case 9:
-                #     cprint("\nGoodBye👋", color='magenta',attrs=['bold'])
-                #     break
+                case 6:
+                    print(self._search_task_in_tasks_list())
+                case 7:
+                    print(self._clear_all_tasks_in_tasks_list())
+                case 8:
+                    print(self._display_complete_task_list())
+                case 9:
+                    print(self.magenta + "\nGoodBye👋")
+                    break
 
 if __name__ == "__main__":
     app = ToDoList()
