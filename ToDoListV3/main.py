@@ -17,12 +17,13 @@ class ToDoList:
     cyan = Fore.CYAN + bold
 
     def __init__(self, tasks_file="tasks.csv", completed_tasks_file="complete_tasks.csv"):
+        self.__author = "Ehsan"
         self._TASKS_FILE = tasks_file
         self._COMPLETE_TASKS_FILE = completed_tasks_file
         self._tasks = []
-        self._complete_list = []
-        self._create_date = datetime.datetime.now()
-        self._length = 0
+        self._complete_tasks = []
+        self._tasks_length = len(self._tasks)
+        self._complete_tasks_length = len(self._complete_tasks)
         
         # Initialize CSV files with headers if they don't exist
         if not os.path.exists(self._TASKS_FILE):
@@ -35,15 +36,55 @@ class ToDoList:
                 writer = csv.writer(file)
                 writer.writerow(['task_id', 'task', 'created_at', 'completed_at'])
 
+    @property
+    def author(self):
+        return self.__author
+    
+    @author.setter
+    def author(self, name):
+        self.__author = name
+
+    @property
+    def tasks_file(self):
+        return self._TASKS_FILE
+    
+    @tasks_file.setter
+    def tasks_file(self, filename):
+        self._TASKS_FILE = filename
+
+    @property
+    def complete_tasks_file(self):
+        return self._COMPLETE_TASKS_FILE
+    
+    @complete_tasks_file.setter
+    def complete_tasks_file(self, filename):
+        self._COMPLETE_TASKS_FILE = filename
+        
+    @property
+    def tasks(self):
+        return self._tasks
+    
+    @property
+    def complete_tasks(self):
+        return self._complete_tasks
+    
+    @property
+    def tasks_length(self):
+        return self._tasks_length
+    
+    @property
+    def complete_tasks_length(self):
+        return self._complete_tasks_length
+
     def _load_tasks_file(self, filename):
-        tasks_list = []
+        tasks_list = [] 
         if not os.path.exists(filename):
             return []
         
         with open(filename, 'r', newline='') as file:
             reader = csv.DictReader(file)
             for row in reader:
-                tasks_list.append(row)
+                tasks_list.append(row) # dictionaries add to my list
         return tasks_list
     
     def _save_tasks_file(self, filename, tasks_list):
@@ -65,17 +106,17 @@ class ToDoList:
         if not add_task_input:
             return self.red + '\nYour input was empty!'
 
-        tasks = self._load_tasks_file(self._TASKS_FILE)
-        
+        self._tasks = self._load_tasks_file(self._TASKS_FILE)
+
         new_task = {
-            'task_id': len(tasks) + 1,
+            'task_id': self._tasks_length + 1,
             'task': add_task_input,
             'created_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'priority': 'medium'  # Default priority
         }
 
-        tasks.append(new_task)
-        self._save_tasks_file(self._TASKS_FILE, tasks)
+        self._tasks.append(new_task)
+        self._save_tasks_file(self._TASKS_FILE,  self._tasks)
 
         return self.green + "\nYour task has been added successfully."
     
@@ -511,7 +552,8 @@ class ToDoList:
         
     def start(self):
         # Initialize files with CSV headers if they don't exist
-        for file, fields in [
+        for file, fields in \
+        [
             (self._TASKS_FILE, ['task_id', 'task', 'created_at', 'priority']),
             (self._COMPLETE_TASKS_FILE, ['task_id', 'task', 'created_at', 'completed_at'])
         ]:
@@ -589,6 +631,7 @@ class ToDoList:
             except UserOptionInputError as e:
                 print(self.red + f"{e.message}{e.num_input}")
                 datetime.sleep(1)
+
 
 if __name__ == "__main__":
     app = ToDoList()
