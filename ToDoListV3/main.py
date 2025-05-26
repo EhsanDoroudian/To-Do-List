@@ -16,14 +16,16 @@ class ToDoList:
     magenta = Fore.MAGENTA + bold
     cyan = Fore.CYAN + bold
 
+    __slots__ =('__author', '_TASKS_FILE', '_COMPLETE_TASKS_FILE', '_priority_dict', '_tasks', '_complete_tasks', '_tasks_length', '_complete_tasks_length')
+
     def __init__(self, tasks_file="tasks.csv", completed_tasks_file="complete_tasks.csv"):
         self.__author = "Ehsan"
         self._TASKS_FILE = tasks_file
         self._COMPLETE_TASKS_FILE = completed_tasks_file
         self._tasks = []
         self._complete_tasks = []
-        self._tasks_length = len(self._tasks)
-        self._complete_tasks_length = len(self._complete_tasks)
+        self._tasks_length = 0
+        self._complete_tasks_length = 0
         
         # Initialize CSV files with headers if they don't exist
         if not os.path.exists(self._TASKS_FILE):
@@ -59,32 +61,37 @@ class ToDoList:
     @complete_tasks_file.setter
     def complete_tasks_file(self, filename):
         self._COMPLETE_TASKS_FILE = filename
-        
+
     @property
     def tasks(self):
+        self._tasks = self._load_tasks_file(self._TASKS_FILE)
         return self._tasks
     
     @property
     def complete_tasks(self):
+        self._complete_tasks = self._load_tasks_file(self._COMPLETE_TASKS_FILE)
         return self._complete_tasks
     
     @property
     def tasks_length(self):
+        self._tasks = self._load_tasks_file(self._TASKS_FILE)
+        self._tasks_length = len(self._tasks)
         return self._tasks_length
     
     @property
     def complete_tasks_length(self):
+        self._complete_tasks = self._load_tasks_file(self._COMPLETE_TASKS_FILE)
+        self._complete_tasks_length = len(self._complete_tasks)
         return self._complete_tasks_length
 
     def _load_tasks_file(self, filename):
-        tasks_list = [] 
         if not os.path.exists(filename):
             return []
         
         with open(filename, 'r', newline='') as file:
             reader = csv.DictReader(file)
-            for row in reader:
-                tasks_list.append(row) # dictionaries add to my list
+            tasks_list = [row for row in reader] # dictionaries add to my list
+            
         return tasks_list
     
     def _save_tasks_file(self, filename, tasks_list):
@@ -106,13 +113,17 @@ class ToDoList:
         if not add_task_input:
             return self.red + '\nYour input was empty!'
 
+        add_task_priority = input(self.white + "choose the priority level (high/medium/low): ").strip().lower()
+        if add_task_priority not in ('high', 'medium', 'low'):
+            return self.red + "Invalid priority input"
+
         self._tasks = self._load_tasks_file(self._TASKS_FILE)
 
         new_task = {
             'task_id': self._tasks_length + 1,
             'task': add_task_input,
             'created_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'priority': 'medium'  # Default priority
+            'priority': add_task_priority
         }
 
         self._tasks.append(new_task)
@@ -125,13 +136,13 @@ class ToDoList:
         print(self.white + '\n ======== Delete a task ======== \n')
         
         # Load current tasks and get count
-        tasks = self._load_tasks_file(self._TASKS_FILE)
-        length = len(tasks)
+        self._tasks = self._load_tasks_file(self._TASKS_FILE)
+        self._tasks_length = len(self._tasks)
 
         # Only proceed if tasks exist
-        if tasks:
+        if self._tasks:
             # Display all tasks with numbered prefixes
-            for index, task in enumerate(tasks, start=1):
+            for index, task in enumerate(self._tasks, start=1):
                 print(self.cyan + f'*{index}: {task["task"]} (Priority: {task["priority"]})')
 
             try:
@@ -145,10 +156,10 @@ class ToDoList:
                 elif delete_task_input < 0:
                     raise NegetiveInputNumber(message='Please enter positive number.')
 
-                elif delete_task_input not in range(1, length+1):
+                elif delete_task_input not in range(1, self._tasks_length + 1):
                     raise TasksInputOutOfRangeError(
                         message='\nError: The number is not in the list. The last number in the list is: ',
-                        len_tasks_list=length
+                        len_tasks_list=self._tasks_length
                     )
                 
             # Handle various error cases
@@ -166,13 +177,13 @@ class ToDoList:
                 return self.red + f'\n{e.message}'
 
             # If validation passed, delete the task
-            deleted_task = tasks.pop(delete_task_input-1)  # Adjust for 0-based index
+            deleted_task = self._tasks.pop(delete_task_input-1)  # Adjust for 0-based index
             
             # Reassign task IDs to maintain sequence
-            for idx, task in enumerate(tasks, start=1):
+            for idx, task in enumerate(self._tasks, start=1):
                 task['task_id'] = idx
                 
-            self._save_tasks_file(self._TASKS_FILE, tasks)  # Persist changes
+            self._save_tasks_file(self._TASKS_FILE, self._tasks)  # Persist changes
 
             return self.green + f"\nTask '{deleted_task['task']}' has been deleted"
         
@@ -181,16 +192,16 @@ class ToDoList:
 
     def _display_tasks_list(self):
         # Load current tasks from file using helper function
-        tasks = self._load_tasks_file(self._TASKS_FILE)
+        self._tasks = self._load_tasks_file(self._TASKS_FILE)
 
         # Check if tasks exist
-        if tasks:
+        if self._tasks:
             # Display section header with consistent formatting
             print(self.white + '\n======== Your Tasks ======== \n')
             
             # Calculate column widths for nice formatting
-            id_width = len(str(len(tasks))) + 2
-            task_width = max(len(task['task']) for task in tasks) + 2
+            id_width = len(str(len(self._tasks))) + 2
+            task_width = max(len(task['task']) for task in self._tasks) + 2
             priority_width = 10
             
             # Print column headers
@@ -202,7 +213,7 @@ class ToDoList:
             print('-' * (id_width + task_width + priority_width + 15))
             
             # Enumerate and display each task with enhanced formatting
-            for index, task in enumerate(tasks, start=1):
+            for index, task in enumerate(self._tasks, start=1):
                 # Format: "1. Task description [Priority] (creation date)"
                 task_line = (f"{self.white}{str(index).ljust(id_width)}"
                             f"{task['task'].ljust(task_width)}"
@@ -211,7 +222,8 @@ class ToDoList:
                 print(task_line)
             
             # Return success confirmation message
-            return self.green + f"\nDisplaying {len(tasks)} tasks."
+            self._tasks_length = len(self._tasks)
+            return self.green + f"\nDisplaying {self._tasks_length} tasks."
 
         else:
             # Return empty list warning message
@@ -219,16 +231,16 @@ class ToDoList:
 
     def _mark_task_as_complete_task(self):
         # Load current tasks and completed tasks
-        tasks = self._load_tasks_file(self._TASKS_FILE)
-        complete_tasks = self._load_tasks_file(self._COMPLETE_TASKS_FILE)
+        self._tasks = self._load_tasks_file(self._TASKS_FILE)
+        self._complete_tasks = self._load_tasks_file(self._COMPLETE_TASKS_FILE)
         
         # Only proceed if there are tasks to complete
-        if tasks:
+        if self._tasks:
             # Display completion section header
             print(self.white + '\n======== Mark Task as Completed ======== \n')
             
             # Show all tasks with selection numbers
-            for index, task in enumerate(tasks, start=1):
+            for index, task in enumerate(self._tasks, start=1):
                 print(self.cyan + f'{index}. {task["task"]} [Priority: {task["priority"]}]')
 
             # Get user input for task to complete
@@ -249,14 +261,14 @@ class ToDoList:
                 if task_index < 0:
                     raise NegetiveInputNumber(message='Please enter a positive number.')
                 
-                if task_index > len(tasks):
+                if task_index > len(self._tasks):
                     raise TasksInputOutOfRangeError(
-                        message=f"\nError: Maximum task number is {len(tasks)}.",
-                        len_tasks_list=len(tasks)
+                        message=f"\nError: Maximum task number is {len(self._tasks)}.",
+                        len_tasks_list=len(self._tasks)
                     )
                     
                 # Get the task to be completed
-                completed_task = tasks[task_index-1]
+                completed_task = self._tasks[task_index-1]
                 
                 # Add completion timestamp
                 completed_task['completed_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -266,16 +278,16 @@ class ToDoList:
                     del completed_task['priority']
                 
                 # Move task from active to completed
-                complete_tasks.append(completed_task)
-                tasks.pop(task_index-1)
+                self._complete_tasks.append(completed_task)
+                self._tasks.pop(task_index-1)
                 
                 # Update task IDs for remaining tasks
-                for idx, task in enumerate(tasks, start=1):
+                for idx, task in enumerate(self._tasks, start=1):
                     task['task_id'] = idx
                 
                 # Persist changes to both files
-                self._save_tasks_file(self._TASKS_FILE, tasks)
-                self._save_tasks_file(self._COMPLETE_TASKS_FILE, complete_tasks)
+                self._save_tasks_file(self._TASKS_FILE, self._tasks)
+                self._save_tasks_file(self._COMPLETE_TASKS_FILE, self._complete_tasks)
 
                 return self.green + f"\nTask '{completed_task['task']}' marked as completed."
 
@@ -297,15 +309,15 @@ class ToDoList:
     
     def _edit_task_in_tasks_list(self):
         # Load current tasks from file
-        tasks = self._load_tasks_file(self._TASKS_FILE)
+        self._tasks = self._load_tasks_file(self._TASKS_FILE)
         
         # Only proceed if tasks exist
-        if tasks:
+        if self._tasks:
             # Display edit section header
             print(self.white + '\n======== Edit Task ======== \n')
             
             # Display all tasks with numbering and details
-            for index, task in enumerate(tasks, start=1):
+            for index, task in enumerate(self._tasks, start=1):
                 print(self.cyan + f'{index}. {task["task"]} [Priority: {task["priority"]}]')
             
             # Get user input for task to edit
@@ -326,14 +338,14 @@ class ToDoList:
                 if task_index < 0:
                     raise NegetiveInputNumber(message='Please enter a positive number.')
                 
-                if task_index > len(tasks):
+                if task_index > len(self._tasks):
                     raise TasksInputOutOfRangeError(
-                        message=f"\nError: Maximum task number is {len(tasks)}.",
-                        len_tasks_list=len(tasks)
+                        message=f"\nError: Maximum task number is {len(self._tasks)}.",
+                        len_tasks_list=len(self._tasks)
                     )
                 
                 # Get the task to be edited
-                task_to_edit = tasks[task_index-1]
+                task_to_edit = self._tasks[task_index-1]
                 
                 # Display current task details
                 print(self.white + f'\nCurrent Task: {task_to_edit["task"]}')
@@ -352,7 +364,7 @@ class ToDoList:
                     return self.red + "\nInvalid priority - keeping current value."
                 
                 # Save the updated task list
-                self._save_tasks_file(self._TASKS_FILE, tasks)
+                self._save_tasks_file(self._TASKS_FILE, self._tasks)
                 
                 return self.green + f"\nTask {task_index} updated successfully."
 
@@ -374,8 +386,8 @@ class ToDoList:
          
     def _search_task_in_tasks_list(self):
         # Load both active and completed tasks
-        tasks = self._load_tasks_file(self._TASKS_FILE)
-        complete_tasks = self._load_tasks_file(self._COMPLETE_TASKS_FILE)
+        self._tasks = self._load_tasks_file(self._TASKS_FILE)
+        self._complete_tasks = self._load_tasks_file(self._COMPLETE_TASKS_FILE)
 
         # Display search header
         print(self.white + '\n======== Search Tasks ======== \n')
@@ -390,7 +402,7 @@ class ToDoList:
         found = False
 
         # Check if both lists are empty
-        if not tasks and not complete_tasks:
+        if not self._tasks and not self._complete_tasks:
             return self.red + "\nNo tasks exist yet."
 
         try:
@@ -403,13 +415,13 @@ class ToDoList:
                 print(self.white + '\n=== Search Results ===\n')
 
                 # Search active tasks
-                for task in tasks:
+                for task in self._tasks:
                     if search_term in task['task'].lower():
                         found = True
                         print(self.green + f"[Active] {task['task']} (Priority: {task['priority']}, Created: {task['created_at']})")
 
                 # Search completed tasks
-                for task in complete_tasks:
+                for task in self._complete_tasks:
                     if search_term in task['task'].lower():
                         found = True
                         print(self.magenta + f"[Completed] {task['task']} (Created: {task['created_at']}, Completed: {task['completed_at']})")
@@ -417,13 +429,13 @@ class ToDoList:
             elif search_option == '2':
                 # Priority search
                 priority = input(self.white + 'Enter priority (high/medium/low): ').strip().lower()
-                if priority not in ['high', 'medium', 'low']:
+                if priority not in ('high', 'medium', 'low'):
                     return self.red + "\nInvalid priority level."
 
                 print(self.white + f'\n=== Tasks with {priority} priority ===\n')
 
                 # Search active tasks by priority
-                for task in tasks:
+                for task in self._tasks:
                     if task['priority'].lower() == priority:
                         found = True
                         print(self.green + f"[Active] {task['task']} (Created: {task['created_at']})")
@@ -436,14 +448,14 @@ class ToDoList:
                 print(self.white + '\n=== Tasks in date range ===\n')
 
                 # Search active tasks by date
-                for task in tasks:
+                for task in self._tasks:
                     task_date = task['created_at'].split()[0]  # Get date part only
                     if (not start_date or task_date >= start_date) and (not end_date or task_date <= end_date):
                         found = True
                         print(self.green + f"[Active] {task['task']} (Created: {task['created_at']})")
 
                 # Search completed tasks by date
-                for task in complete_tasks:
+                for task in self._complete_tasks:
                     task_date = task['completed_at'].split()[0]  # Get date part only
                     if (not start_date or task_date >= start_date) and (not end_date or task_date <= end_date):
                         found = True
@@ -462,16 +474,16 @@ class ToDoList:
     
     def _clear_all_tasks_in_tasks_list(self):
         # Load current tasks from file
-        tasks = self._load_tasks_file(self._TASKS_FILE)
-        complete_tasks = self._load_tasks_file(self._COMPLETE_TASKS_FILE)
+        self._tasks = self._load_tasks_file(self._TASKS_FILE)
+        self._tasks_length = len(self._tasks)
 
         # Display clear tasks header with warning
         print(self.white + "\n======== Clear All Tasks ========\n")
         print(self.red + "WARNING: This will permanently delete ALL active tasks!")
-        print(self.white + f"Total tasks to be deleted: {len(tasks)}\n")
+        print(self.white + f"Total tasks to be deleted: { self._tasks_length }\n")
 
         # Only proceed if tasks exist
-        if tasks:
+        if self._tasks:
             # Get confirmation from user with multiple checks
             confirm1 = input(self.white + "Type 'DELETE' to confirm: ").strip().upper()
             if confirm1 != "DELETE":
@@ -481,18 +493,13 @@ class ToDoList:
             if confirm2 not in ['y', 'yes']:
                 return self.magenta + "\nSecond confirmation failed - operation cancelled."
 
-            # Create backup before clearing
-            backup_file = f"tasks_backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            self._save_tasks_file(backup_file, tasks)
-            
             # Clear the task list in memory
-            tasks.clear()
+            self._tasks.clear()
             
             # Save the empty list to file
-            self._save_tasks_file(self._TASKS_FILE, tasks)
+            self._save_tasks_file(self._TASKS_FILE, self._tasks)
             
-            return (self.green + "\nAll tasks cleared successfully." +
-                    self.cyan + f"\nBackup saved as: {backup_file}")
+            return (self.green + "\nAll tasks cleared successfully.")
 
         else:  # No tasks case
             return self.red + "\nYour active tasks list is already empty!"
@@ -500,16 +507,16 @@ class ToDoList:
 
     def _display_complete_task_list(self):
         # Load completed tasks from persistent storage
-        complete_tasks = self._load_tasks_file(self._COMPLETE_TASKS_FILE)
+        self._complete_tasks = self._load_tasks_file(self._COMPLETE_TASKS_FILE)
         
         # Display section header for completed tasks
         print(self.white + '\n======== Completed Tasks ======== \n')
 
         # Check if there are completed tasks to display
-        if complete_tasks:
+        if self._complete_tasks:
             # Calculate column widths for nice formatting
-            id_width = len(str(len(complete_tasks))) + 2
-            task_width = max(len(task['task']) for task in complete_tasks) + 2
+            id_width = len(str(len(self._complete_tasks))) + 2
+            task_width = max(len(task['task']) for task in self._complete_tasks) + 2
             date_width = 20
             
             # Print column headers
@@ -521,19 +528,19 @@ class ToDoList:
             print('-' * (id_width + task_width + date_width + 18))
             
             # Enumerate and display each task with enhanced formatting
-            for num, task in enumerate(complete_tasks, start=1):
+            for num, task in enumerate(self._complete_tasks, start=1):
                 print(self.white + f"{str(num).ljust(id_width)}"
                     f"{task['task'].ljust(task_width)}"
                     f"{self.magenta}{task['completed_at'].ljust(date_width)}"
                     f"{self.cyan}{task['created_at']}")
             
             # Display statistics
-            print(self.green + f"\nTotal completed tasks: {len(complete_tasks)}")
+            print(self.green + f"\nTotal completed tasks: {len(self._complete_tasks)}")
             
             # Calculate completion time statistics if available
             try:
                 completion_times = []
-                for task in complete_tasks:
+                for task in self._complete_tasks:
                     created = datetime.datetime.strptime(task['created_at'], '%Y-%m-%d %H:%M:%S')
                     completed = datetime.datetime.strptime(task['completed_at'], '%Y-%m-%d %H:%M:%S')
                     completion_times.append((completed - created).days)
@@ -549,7 +556,11 @@ class ToDoList:
         else:
             # Return message when no completed tasks exist
             return self.red + "\nNo tasks have been completed yet."
-        
+    
+    @staticmethod
+    def _display_statistics():
+        pass
+
     def start(self):
         # Initialize files with CSV headers if they don't exist
         for file, fields in \
